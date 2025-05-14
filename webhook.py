@@ -1,33 +1,28 @@
-from flask import Flask, request
-import sqlite3
-import os
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+const port = process.env.PORT || 3000;
 
-app = Flask(__name__)
+app.use(bodyParser.json());
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    data = request.json
-    if data.get("status") == "completed":
-        numero = data.get("phone")
-        montant = data.get("amount")
+// Route callback IPN de PayDunya
+app.post('/paydunya-callback', (req, res) => {
+  const paiement = req.body;
 
-        # 🔒 Connexion à SQLite (inutile sur Render, mais on laisse pour structure locale)
-        try:
-            conn = sqlite3.connect("market.db")
-            cursor = conn.cursor()
-            cursor.execute("UPDATE vendeurs SET statut_pack = 'actif' WHERE contact = ?", (numero,))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            print("Erreur DB:", e)
+  console.log("Notification PayDunya reçue :", paiement);
 
-        print(f"✅ Paiement reçu : {montant} FCFA de {numero}")
-        return "Pack activé", 200
+  if (paiement.status === 'completed') {
+    // Tu peux ici appeler Supabase pour valider le paiement
+    console.log("Paiement réussi pour :", paiement.invoice_token);
+  }
 
-    print("❌ Paiement non validé :", data)
-    return "Pas payé", 200
+  res.sendStatus(200); // Important pour PayDunya
+});
 
-# ⛅ Partie nécessaire pour Render.com
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+app.get('/', (req, res) => {
+  res.send("Mini backend PayDunya actif !");
+});
+
+app.listen(port, () => {
+  console.log(`Serveur en ligne sur le port ${port}`);
+});
